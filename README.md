@@ -22,7 +22,7 @@ Another scenario (if we chose to handle so by enabling in rules), if all child t
 ### Deployment with Azure Functions with HTTP Trigger
  ![](./media/architecture-diagram.png)
 
-## How to use the project
+## How to use the project ?
 ### Overview
 
 * Clone or fork this repository and define your custom rules for handling your scenarios for work item handling as per the process type that you use e.g. scrum, agile, etc. (detailed steps below)
@@ -35,7 +35,7 @@ Another scenario (if we chose to handle so by enabling in rules), if all child t
     * ADO_PAT - To hold your Azure DevOps Personal Access Token
     * ADO_PROCESS_TYPE - To provide at run time rules of which process type to apply
 
-* Create a new web hook for the child work item types. In this example we are just setting up web hooks for when Task work items are updated. The web hook should send when the state field is changed.
+* Create a new web hook for each of the child work item types. In this example we are just setting up web hooks for when Task work items are updated. The web hook should send when the state field is changed.
 
    ![](./media/web-hooks-1.png)
 
@@ -131,11 +131,10 @@ Another scenario (if we chose to handle so by enabling in rules), if all child t
 * ***Note:*** Sample Rule files have been set up in respective folders by process type, please define and use accordingly.
 
 ### Additional Security Considerations (Optional)
-* Consider securing the exposed API URL behind an Azure APIM Services that protects and authenticates the service endpoint.
-* Create only Allow rules for access to the deployed App Service from the public IP address of the APIM instance.
-* Consider utilizing an Azure Key Vault to retrieve the Azure DevOps PAT(would require further code enhancement).
 * Consider deploying to Azure using a CI/CD Process using Azure DevOps instead of local deployment.
-
+* Consider securing the exposed API URL behind an Azure APIM Services that protects and authenticates the service endpoint.
+* Create only Allow rules for access to the deployed API function from the public IP address of the APIM instance.
+* Consider utilizing an Azure Key Vault to retrieve the Azure DevOps PAT(would require further code enhancement).
 
 ## Build and Test in Local Development Environment
 ### Local Environment Set Up Steps 
@@ -183,7 +182,7 @@ Another scenario (if we chose to handle so by enabling in rules), if all child t
     - `"Content-Type":"application/json"`
 
 ## TO DO
-* Add Steps for building using CI/CD and Azur DevOps
+* Add Steps for building using CI/CD and Azure DevOps
 
 ## Contributing
 
