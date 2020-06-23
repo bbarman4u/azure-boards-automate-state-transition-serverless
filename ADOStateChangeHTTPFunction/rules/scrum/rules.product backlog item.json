@@ -15,8 +15,8 @@
     },
     {
       "ifChildState": "Done",
-      "notParentStates": [ "Done","Removed" ],
-      "setParentStateTo": "Done",
+      "notParentStates": [ "In Progress","Done","Removed" ],
+      "setParentStateTo": "In Progress",
       "allChildren": false
     }
   ]
