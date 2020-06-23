@@ -1,0 +1,23 @@
+{
+  "type": "Product Backlog Item",
+  "rules": [
+    {
+      "ifChildState": "Approved",
+      "notParentStates": [ "Approved","Committed","Done","Removed" ],
+      "setParentStateTo": "Approved",
+      "allChildren": false
+    },
+    {
+      "ifChildState": "Committed",
+      "notParentStates": [ "Committed","Done","Removed" ],
+      "setParentStateTo": "Committed",
+      "allChildren": false
+    },
+    {
+      "ifChildState": "Done",
+      "notParentStates": [ "Committed","Done","Removed" ],
+      "setParentStateTo": "Committed",
+      "allChildren": false
+    }
+  ]
+}
