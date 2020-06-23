@@ -3,20 +3,20 @@
   "rules": [
     {
       "ifChildState": "Approved",
-      "notParentStates": [ "Approved","Committed","Done","Removed" ],
-      "setParentStateTo": "Approved",
+      "notParentStates": [ "In Progress","Done","Removed" ],
+      "setParentStateTo": "In Progress",
       "allChildren": false
     },
     {
       "ifChildState": "Committed",
-      "notParentStates": [ "Committed","Done","Removed" ],
-      "setParentStateTo": "Committed",
+      "notParentStates": [ "In Progress","Done","Removed" ],
+      "setParentStateTo": "In Progress",
       "allChildren": false
     },
     {
       "ifChildState": "Done",
-      "notParentStates": [ "Committed","Done","Removed" ],
-      "setParentStateTo": "Committed",
+      "notParentStates": [ "Done","Removed" ],
+      "setParentStateTo": "Done",
       "allChildren": false
     }
   ]
