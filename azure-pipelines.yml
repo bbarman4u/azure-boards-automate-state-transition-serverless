@@ -48,6 +48,7 @@ stages:
           #sonar.cs.vscoveragexml.reportsPaths=/.coveragexml
           sonar.projectBaseDir=.
           sonar.projectKey=bbarman.github.azdo.state.change
+          sonar.scm.provider=git
           #sonar.sources=.
     - task: DotNetCoreCLI@2
       displayName: 'Restore project dependencies'
