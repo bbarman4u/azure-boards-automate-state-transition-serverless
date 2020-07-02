@@ -29,7 +29,14 @@ stages:
     - script: 'echo "$(Build.DefinitionName), $(Build.BuildId), $(Build.BuildNumber)" > buildinfo.txt'
       displayName: 'Write build info'
       workingDirectory: $(Build.ArtifactStagingDirectory)
-
+    - task: SonarCloudPrepare@1
+      displayName: 'Prepare Sonar Analysis'
+      inputs:
+        SonarCloud: 'SonarCloud Public'
+        organization: 'bbarman'
+        scannerMode: 'MSBuild'
+        projectKey: 'bbarman.github.azdo.state.change'
+        projectName: 'azure-boards-automate-state-transition-serverless'
     - task: DotNetCoreCLI@2
       displayName: 'Restore project dependencies'
       inputs:
@@ -47,7 +54,8 @@ stages:
     #   displayName: 'Security and License Scan'
     #   inputs:
     #     cwd: '$(System.DefaultWorkingDirectory)'
-
+    - task: SonarCloudAnalyze@1
+      displayName: 'Run Sonar Analysis'
     - task: DotNetCoreCLI@2
       displayName: 'Publish the project - $(buildConfiguration)'
       inputs:
@@ -56,6 +64,8 @@ stages:
         publishWebProjects: false
         arguments: '--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(buildConfiguration)'
         zipAfterPublish: true
-
+    - task: SonarCloudPublish@1
+      inputs:
+        pollingTimeoutSec: '300'
     - publish: '$(Build.ArtifactStagingDirectory)'
       artifact: drop
