@@ -2,6 +2,8 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <!-- SonarQube needs this -->
+    <ProjectGuid>{6224c484-3e23-4f06-a749-195c1e478111}</ProjectGuid>
   </PropertyGroup>
 
   <ItemGroup>
