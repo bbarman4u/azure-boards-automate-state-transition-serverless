@@ -1,0 +1,84 @@
+# Starter pipeline for CI/CD
+
+trigger:
+- master
+
+variables:
+  buildConfiguration: 'Release'
+  ubuntuImage: 'ubuntu-latest'
+
+stages:
+- stage: 'Build'
+  displayName: 'Build the web application'
+  jobs: 
+  - job: 'Build'
+    displayName: 'Build job'
+    pool:
+      vmImage: '$(ubuntuImage)'
+      demands:
+      - npm
+    variables:
+      dotnetSdkVersion: '3.1.x'
+
+    steps:
+    - task: UseDotNet@2
+      displayName: 'Use .NET Core sdk 2.2 for Sonar Analysis'
+      inputs:
+        version: '2.2.x'
+    - task: UseDotNet@2
+      displayName: 'Use .NET Core SDK $(dotnetSdkVersion)'
+      inputs:
+        version: '$(dotnetSdkVersion)'
+
+    - script: 'echo "$(Build.DefinitionName), $(Build.BuildId), $(Build.BuildNumber)" > buildinfo.txt'
+      displayName: 'Write build info'
+      workingDirectory: $(Build.ArtifactStagingDirectory)
+    - task: SonarCloudPrepare@1
+      displayName: 'Prepare Sonar Analysis'
+      inputs:
+        SonarCloud: 'SonarCloud Public'
+        organization: 'bbarman'
+        scannerMode: 'MSBuild'
+        projectKey: 'bbarman.github.azdo.state.change'
+        projectName: 'azure-boards-automate-state-transition-serverless'
+        extraProperties: |
+          # Additional properties that will be passed to the scanner, 
+          # Put one key=value per line, example:
+          sonar.exclusions=**/*.bin
+          #sonar.cs.vscoveragexml.reportsPaths=/.coveragexml
+          sonar.projectBaseDir=.
+          sonar.projectKey=bbarman.github.azdo.state.change
+          sonar.scm.provider=git
+          #sonar.sources=.
+    - task: DotNetCoreCLI@2
+      displayName: 'Restore project dependencies'
+      inputs:
+        command: 'restore'
+        projects: '**/*.csproj'
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Build the project - $(buildConfiguration)'
+      inputs:
+        command: 'build'
+        arguments: '--no-restore --configuration $(buildConfiguration)'
+        projects: '**/*.csproj'
+
+    # - task: WhiteSource Bolt@20
+    #   displayName: 'Security and License Scan'
+    #   inputs:
+    #     cwd: '$(System.DefaultWorkingDirectory)'
+    - task: SonarCloudAnalyze@1
+      displayName: 'Run Sonar Analysis'
+    - task: DotNetCoreCLI@2
+      displayName: 'Publish the project - $(buildConfiguration)'
+      inputs:
+        command: 'publish'
+        projects: '**/*.csproj'
+        publishWebProjects: false
+        arguments: '--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(buildConfiguration)'
+        zipAfterPublish: true
+    - task: SonarCloudPublish@1
+      inputs:
+        pollingTimeoutSec: '300'
+    - publish: '$(Build.ArtifactStagingDirectory)'
+      artifact: drop

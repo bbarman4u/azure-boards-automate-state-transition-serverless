@@ -1,0 +1,23 @@
+{
+  "type": "Task",
+  "rules": [
+    {
+      "ifChildState": "In Progress",
+      "notParentStates": [ "Committed","Done","Removed"],
+      "setParentStateTo": "Committed",
+      "allChildren": false
+    },
+    {
+      "ifChildState": "Done",
+      "notParentStates": ["Done","Removed"],
+      "setParentStateTo": "Committed",
+      "allChildren": false
+    },
+    {
+      "ifChildState": "Done",
+      "notParentStates": ["Done","Removed"],
+      "setParentStateTo": "Done",
+      "allChildren": true
+    }
+  ]
+}

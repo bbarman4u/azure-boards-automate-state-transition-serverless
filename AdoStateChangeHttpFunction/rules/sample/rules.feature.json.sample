@@ -1,0 +1,17 @@
+{
+  "type": "Feature",
+  "rules": [
+    {
+      "ifChildState": "In Progress",
+      "notParentStates": [ "In Progress" ],
+      "setParentStateTo": "In Progress",
+      "allChildren": false
+    },
+    {
+      "ifChildState": "New",
+      "notParentStates": [ "New" ],
+      "setParentStateTo": "New",
+      "allChildren": true
+    }
+  ]
+}
