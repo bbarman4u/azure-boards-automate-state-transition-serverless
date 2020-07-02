@@ -41,6 +41,14 @@ stages:
         scannerMode: 'MSBuild'
         projectKey: 'bbarman.github.azdo.state.change'
         projectName: 'azure-boards-automate-state-transition-serverless'
+        extraProperties: |
+          # Additional properties that will be passed to the scanner, 
+          # Put one key=value per line, example:
+          sonar.exclusions=**/*.bin
+          #sonar.cs.vscoveragexml.reportsPaths=/.coveragexml
+          sonar.projectBaseDir=.
+          sonar.projectKey=bbarman.github.azdo.state.change
+          sonar.sources=.
     - task: DotNetCoreCLI@2
       displayName: 'Restore project dependencies'
       inputs:
