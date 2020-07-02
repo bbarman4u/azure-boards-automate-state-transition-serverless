@@ -3,6 +3,8 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <AzureFunctionsVersion>v3</AzureFunctionsVersion>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <!-- SonarQube needs this -->
+    <ProjectGuid>{6224c484-3e23-4f06-a749-195c1e478110}</ProjectGuid>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="3.0.3" />
