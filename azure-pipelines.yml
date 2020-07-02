@@ -18,12 +18,13 @@ stages:
       demands:
       - npm
     variables:
-      dotnetSdkVersion: '3.1.300'
+      dotnetSdkVersion: '3.1.x'
 
     steps:
     - task: UseDotNet@2
-      displayName: ‘Use .NET Core sdk 2.2 for Sonar Analysis’
-
+      displayName: 'Use .NET Core sdk 2.2 for Sonar Analysis'
+      inputs:
+        version: '2.2'
     - task: UseDotNet@2
       displayName: 'Use .NET Core SDK $(dotnetSdkVersion)'
       inputs:
