@@ -1,11 +1,9 @@
 ﻿using Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
 using Microsoft.VisualStudio.Services.WebApi;
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
-namespace ADOStateProcessor.Repos.Interfaces
+namespace AdoStateProcessor.Repos.Interfaces
 {
     public interface IWorkItemRepo
     {

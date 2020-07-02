@@ -1,9 +1,9 @@
-using ADOStateProcessor.Models;
+using AdoStateProcessor.Models;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace ADOStateProcessor.Repos.Interfaces
+namespace AdoStateProcessor.Repos.Interfaces
 {
     public interface IRulesRepo
     {

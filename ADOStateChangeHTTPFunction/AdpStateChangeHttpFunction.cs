@@ -6,30 +6,27 @@ using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using System.Linq;
-using ADOStateProcessor.ViewModels;
 using Newtonsoft.Json.Linq;
-using ADOStateProcessor.Repos.Interfaces;
-using ADOStateProcessor.Misc;
-using ADOStateProcessor.Processor;
+using AdoStateProcessor.Repos.Interfaces;
+using AdoStateProcessor.Misc;
+using AdoStateProcessor.Processor;
 
 namespace ADOStateChangeHTTPFunction
 {
-    public class ADOStateChangeHTTPFunction
+    public class AdoStateChangeHttpFunction
     {
         private readonly IWorkItemRepo _workItemRepo;
         private readonly IRulesRepo _rulesRepo;
         private readonly IHelper _helper;
 
-        public ADOStateChangeHTTPFunction(IWorkItemRepo workItemRepo, IRulesRepo rulesRepo, IHelper helper)
+        public AdoStateChangeHttpFunction(IWorkItemRepo workItemRepo, IRulesRepo rulesRepo, IHelper helper)
         {
             _workItemRepo = workItemRepo;
             _rulesRepo = rulesRepo;
             _helper = helper;
         }
 
-        [FunctionName("ADOStateChangeHTTPFunction")]
+        [FunctionName("AdoStateChangeHttpFunction")]
         public async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req,
             ILogger log, ExecutionContext context)
@@ -58,7 +55,7 @@ namespace ADOStateChangeHTTPFunction
             // Need to read the rules file from the rules folder in current context
             string functionAppCurrDirectory = context.FunctionAppDirectory;
 
-            var adoEngine = new ADOProcessor(_workItemRepo, _rulesRepo, _helper, log);
+            var adoEngine = new AdoProcessor(_workItemRepo, _rulesRepo, _helper, log);
 
             Task.WaitAll(
                 adoEngine.ProcessUpdate(payload, pat, functionAppCurrDirectory, processType));

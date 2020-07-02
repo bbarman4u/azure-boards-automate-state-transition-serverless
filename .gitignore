@@ -265,3 +265,6 @@ __pycache__/
 
 # IDE Files
 .vscode
+
+#Sonarqube files
+.sonarqube

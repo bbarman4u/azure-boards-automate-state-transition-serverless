@@ -1,13 +1,11 @@
-using System;
-using ADOStateProcessor.Misc;
-using ADOStateProcessor.Repos;
-using ADOStateProcessor.Repos.Interfaces;
+using AdoStateProcessor.Misc;
+using AdoStateProcessor.Repos;
+using AdoStateProcessor.Repos.Interfaces;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
-[assembly: FunctionsStartup(typeof(ADOStateChangeHTTPFunction.Startup))]
-namespace ADOStateChangeHTTPFunction
+[assembly: FunctionsStartup(typeof(AdoStateChangeHTTPFunction.Startup))]
+namespace AdoStateChangeHTTPFunction
 {
     public class Startup : FunctionsStartup
     {

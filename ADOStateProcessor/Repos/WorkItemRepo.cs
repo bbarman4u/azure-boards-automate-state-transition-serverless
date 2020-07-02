@@ -7,13 +7,12 @@ using Microsoft.VisualStudio.Services.WebApi.Patch;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
 using Microsoft.VisualStudio.Services.WebApi;
 
-using ADOStateProcessor.Misc;
-using ADOStateProcessor.Models;
+using AdoStateProcessor.Misc;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi;
 using System.Threading.Tasks;
-using ADOStateProcessor.Repos.Interfaces;
+using AdoStateProcessor.Repos.Interfaces;
 
-namespace ADOStateProcessor.Repos
+namespace AdoStateProcessor.Repos
 {
     public class WorkItemRepo : IWorkItemRepo, IDisposable
     {
@@ -41,7 +40,6 @@ namespace ADOStateProcessor.Repos
 
         public async Task<List<WorkItem>> ListChildWorkItemsForParent(VssConnection connection, WorkItem parentWorkItem)
         {
-            List<WorkItem> list = new List<WorkItem>();
             var client = connection.GetClient<WorkItemTrackingHttpClient>();
 
             // get all the related child work item links
@@ -93,7 +91,6 @@ namespace ADOStateProcessor.Repos
             {
                 result = null;
             }
-            System.Console.WriteLine( DateTime.Now + " result of update of work item id: " + result.Id);
             return result;
         }
 

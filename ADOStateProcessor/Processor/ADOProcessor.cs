@@ -1,32 +1,28 @@
-using Microsoft.TeamFoundation.WorkItemTracking.WebApi;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
 using Microsoft.VisualStudio.Services.Common;
 using Microsoft.VisualStudio.Services.WebApi;
-using Microsoft.VisualStudio.Services.WebApi.Patch;
-using Microsoft.VisualStudio.Services.WebApi.Patch.Json;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using ADOStateProcessor.Repos.Interfaces;
-using ADOStateProcessor.Misc;
-using ADOStateProcessor.ViewModels;
+using AdoStateProcessor.Repos.Interfaces;
+using AdoStateProcessor.Misc;
+using AdoStateProcessor.ViewModels;
 using Newtonsoft.Json.Linq;
-using ADOStateProcessor.Models;
+using AdoStateProcessor.Models;
 
-namespace ADOStateProcessor.Processor
+namespace AdoStateProcessor.Processor
 {
-    public class ADOProcessor
+    public class AdoProcessor
     {
         private const string ADO_BASE_URL = "https://dev.azure.com/";
         private readonly IWorkItemRepo _workItemRepo;
         private readonly IRulesRepo _rulesRepo;
         private readonly IHelper _helper;
-        ILogger logger;
+        private readonly ILogger logger;
 
-        public ADOProcessor(IWorkItemRepo workItemRepo, IRulesRepo rulesRepo, IHelper helper,ILogger logger)
+        public AdoProcessor(IWorkItemRepo workItemRepo, IRulesRepo rulesRepo, IHelper helper,ILogger logger)
         {
             _workItemRepo = workItemRepo;
             _rulesRepo = rulesRepo;
@@ -69,7 +65,6 @@ namespace ADOStateProcessor.Processor
 
             // load rules for updated work item
             RulesModel rulesModel = await _rulesRepo.ListRules(vm.workItemType, functionAppCurrDirectory, processType);
-            Boolean updateResult = false;
             //loop through each rule
             foreach (var rule in rulesModel.Rules)
             {
@@ -82,8 +77,6 @@ namespace ADOStateProcessor.Processor
                         if (!rule.NotParentStates.Contains(parentState))
                         {
                             await _workItemRepo.UpdateWorkItemState(vssConnection, parentWorkItem, rule.SetParentStateTo);
-                            //return new OkResult();
-                            updateResult = true;
                         }
                     }
                     else
@@ -96,9 +89,6 @@ namespace ADOStateProcessor.Processor
 
                         if (count.Equals(0))
                             await _workItemRepo.UpdateWorkItemState(vssConnection, parentWorkItem, rule.SetParentStateTo);
-
-                        //return new OkResult();
-                         updateResult = true;
                     }
 
                 }

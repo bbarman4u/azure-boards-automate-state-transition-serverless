@@ -1,9 +1,7 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
 
 
-namespace ADOStateProcessor.Misc
+namespace AdoStateProcessor.Misc
 {
     public class Helper : IHelper
     {
