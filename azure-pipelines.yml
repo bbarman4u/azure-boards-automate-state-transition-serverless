@@ -24,7 +24,7 @@ stages:
     - task: UseDotNet@2
       displayName: 'Use .NET Core sdk 2.2 for Sonar Analysis'
       inputs:
-        version: '2.2'
+        version: '2.2.x'
     - task: UseDotNet@2
       displayName: 'Use .NET Core SDK $(dotnetSdkVersion)'
       inputs:
