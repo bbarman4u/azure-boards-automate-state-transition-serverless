@@ -1,3 +1,9 @@
+[![Build Status](https://dev.azure.com/bbarman/Github-Projects-Public/_apis/build/status/bbarman4u.azure-boards-automate-state-transition-serverless?branchName=master)](https://dev.azure.com/bbarman/Github-Projects-Public/_build/latest?definitionId=22&branchName=master)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=bbarman.github.azdo.state.change&metric=alert_status)](https://sonarcloud.io/dashboard?id=bbarman.github.azdo.state.change)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=bbarman.github.azdo.state.change&metric=security_rating)](https://sonarcloud.io/dashboard?id=bbarman.github.azdo.state.change)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=bbarman.github.azdo.state.change&metric=reliability_rating)](https://sonarcloud.io/dashboard?id=bbarman.github.azdo.state.change)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=bbarman.github.azdo.state.change&metric=vulnerabilities)](https://sonarcloud.io/dashboard?id=bbarman.github.azdo.state.change)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=bbarman.github.azdo.state.change&metric=bugs)](https://sonarcloud.io/dashboard?id=bbarman.github.azdo.state.change)
 
 
 # Azure Boards - Automate State Transitions (Serverless Azure Functions Version)
@@ -152,28 +158,29 @@ Another scenario (if we chose to handle so by enabling in rules), if all child t
 ### Build and run steps
 * Commands to make sure project is building
     ```
-    cd ADOStateChangeHTTPFunction
+    cd AdoStateChangeHttpFunction
     dotnet build
     ```
 * To run the function locally
     ```
-    cd ADOStateChangeHTTPFunction
+    cd AdoStateChangeHttpFunction
     func start
     ```
     - You should see the function start (if not errors) with the end point of the function to test against locally
     ```
     Http Functions:
 
-        ADOStateChangeHTTPFunction: [POST] http://localhost:7071/api/ADOStateChangeHTTPFunction
+        AdoStateChangeHttpFunction: [POST] http://localhost:7071/api/AdoStateChangeHttpFunction
     ```
     ![azure function local](media/azure-function-local-1.png)
 ### Publishing to Azure 
 * Refer to the steps for creating and publishing your Function App to Azure per your IDE or environment. Remember to create or select right resource group, storage account, consumption plan, OS, run rime stack (.net Core 3.1 LTS)
 * Example deployment using [Azure CLI](https://docs.microsoft.com/en-us/azure/azure-functions/functions-create-first-azure-function-azure-cli?tabs=bash%2Cbrowser&pivots=programming-language-csharp)
     ```
-    cd ADOStateChangeHTTPFunction
+    cd AdoStateChangeHttpFunction
     az login
-    func azure functionapp publish ADOStateChangeHTTPFunction
+    ....
+    func azure functionapp publish AdoStateChangeHttpFunction
     ```
 ### Testing using Postman
 * Set an environment in Postman and set a value for the variable `baseUrl` to use in your post rquest
@@ -183,6 +190,7 @@ Another scenario (if we chose to handle so by enabling in rules), if all child t
 
 ## TO DO
 * Add Steps for building using CI/CD and Azure DevOps
+* Linting with Sonarqube/Sonarcloud
 
 ## Contributing
 
