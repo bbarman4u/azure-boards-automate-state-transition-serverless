@@ -22,18 +22,18 @@ namespace AdoStateProcessor.Processor
         private readonly IHelper _helper;
         private readonly ILogger logger;
 
-        public AdoProcessor(IWorkItemRepo workItemRepo, IRulesRepo rulesRepo, IHelper helper,ILogger logger)
+        public AdoProcessor(IWorkItemRepo workItemRepo, IRulesRepo rulesRepo, IHelper helper, ILogger logger)
         {
             _workItemRepo = workItemRepo;
             _rulesRepo = rulesRepo;
             _helper = helper;
             this.logger = logger;
-        } 
+        }
         public async Task ProcessUpdate(JObject payload, string pat, string functionAppCurrDirectory, string processType)
         {
             PayloadViewModel vm = BuildPayloadViewModel(payload);
 
-            logger.LogTrace(" Masked PAT:"+ Mask(pat));
+            logger.LogTrace(" Masked PAT:" + Mask(pat));
             vm.pat = pat;
             //if the event type is something other the updated, then lets just return an ok
             if (vm.eventType != "workitem.updated") return;
@@ -48,18 +48,39 @@ namespace AdoStateProcessor.Processor
             WorkItem workItem = await _workItemRepo.GetWorkItem(vssConnection, vm.workItemId);
 
             // this should never happen, but if we can't load the work item from the id, then exit with error
-            if (workItem == null) return ;
+            if (workItem == null)
+            {
+                logger.LogError(" work item not found");
+                return;
+            }
+
+            if (workItem.Relations == null)
+            {
+                logger.LogError(" work item has no parents");
+                return;
+            }
 
             // get the related parent
-            WorkItemRelation parentRelation = workItem.Relations.Where<WorkItemRelation>(x => x.Rel.Equals("System.LinkTypes.Hierarchy-Reverse")).FirstOrDefault();
+            WorkItemRelation parentRelation = workItem.Relations.Where<WorkItemRelation>(relationLink => 
+                                                                                            !string.IsNullOrEmpty(relationLink.Rel) 
+                                                                                            && relationLink.Rel.Equals("System.LinkTypes.Hierarchy-Reverse"))
+                                                                .FirstOrDefault();
 
             // if we don't have any parents to worry about, then just abort
-            if (parentRelation == null) return;
+            if (parentRelation == null)
+            {
+                logger.LogError(" no parent defined");
+                return;
+            }
 
             Int32 parentId = _helper.GetWorkItemIdFromUrl(parentRelation.Url);
             WorkItem parentWorkItem = await _workItemRepo.GetWorkItem(vssConnection, parentId);
 
-            if (parentWorkItem == null) return;
+            if (parentWorkItem == null)
+            {
+                logger.LogError(" no parent found");
+                return;
+            };
 
             string parentState = parentWorkItem.Fields["System.State"] == null ? string.Empty : parentWorkItem.Fields["System.State"].ToString();
 
@@ -73,7 +94,7 @@ namespace AdoStateProcessor.Processor
                 {
                     if (!rule.AllChildren)
                     {
-                         logger.LogInformation(" In !rule.AllChildren:" + vm.state);
+                        logger.LogInformation(" In !rule.AllChildren:" + vm.state);
                         if (!rule.NotParentStates.Contains(parentState))
                         {
                             await _workItemRepo.UpdateWorkItemState(vssConnection, parentWorkItem, rule.SetParentStateTo);
@@ -92,12 +113,12 @@ namespace AdoStateProcessor.Processor
                     }
 
                 }
-               
+
             }
         }
 
 
-        private  string Mask(string s)
+        private string Mask(string s)
         {
             if (string.IsNullOrEmpty(s))
                 return s;
@@ -107,55 +128,112 @@ namespace AdoStateProcessor.Processor
                 return "".PadLeft(s.Length, maskChar);
 
             return string.Format("{0}{1}{2}", s[0], "".PadLeft(s.Length - 2, maskChar), s[s.Length - 1]);
-        } 
-         private PayloadViewModel BuildPayloadViewModel(JObject body)
+        }
+        private PayloadViewModel BuildPayloadViewModel(JObject body)
         {
             PayloadViewModel vm = new PayloadViewModel();
 
-            string url = body["resource"]["url"] == null ? null : body["resource"]["url"].ToString();
-            string org = GetOrganization(url);
+            vm.workItemId = this.GetPayloadValue<int>(body, "resource.workItemId", token => Convert.ToInt32(token.ToString()));
+            if (vm.workItemId == 0)
+                return null;
 
-            vm.workItemId = body["resource"]["workItemId"] == null ? -1 : Convert.ToInt32(body["resource"]["workItemId"].ToString());
-            vm.workItemType = body["resource"]["revision"]["fields"]["System.WorkItemType"] == null ? null : body["resource"]["revision"]["fields"]["System.WorkItemType"].ToString();
-            vm.eventType = body["eventType"] == null ? null : body["eventType"].ToString();
-            vm.rev = body["resource"]["rev"] == null ? -1 : Convert.ToInt32(body["resource"]["rev"].ToString());
-            vm.url = body["resource"]["url"] == null ? null : body["resource"]["url"].ToString();
-            vm.organization = org;
-            vm.teamProject = body["resource"]["fields"]["System.AreaPath"] == null ? null : body["resource"]["fields"]["System.AreaPath"].ToString();
-            vm.state = body["resource"]["fields"]["System.State"]["newValue"] == null ? null : body["resource"]["fields"]["System.State"]["newValue"].ToString();
-            
-            //debug the parsing logic
-            String tempParentId = body["resource"]["revision"]["fields"]["System.Parent"] == null ? null : body["resource"]["revision"]["fields"]["System.Parent"].ToString();
-            String tempTeamProject = body["resource"]["revision"]["fields"]["System.TeamProject"] == null ? null : body["resource"]["revision"]["fields"]["System.TeamProject"].ToString();
+            vm.workItemType = this.GetPayloadValue<string>(body, "resource.revision.fields.['System.WorkItemType']", token => token.ToString());
+            if (string.IsNullOrEmpty(vm.workItemType))
+                return null;
+
+            vm.eventType = this.GetPayloadValue<string>(body, "eventType", token => token.ToString());
+            if (string.IsNullOrEmpty(vm.eventType))
+                return null;
+
+            if (!this.PayloadHasValue(body, "resource.rev"))
+                return null;
+            else
+                vm.rev = this.GetPayloadValue<int>(body, "resource.rev", token => Convert.ToInt32(body["resource"]["rev"].ToString()));
+
+            vm.url = this.GetPayloadValue<string>(body, "resource.url", token => token.ToString());
+            if (string.IsNullOrEmpty(vm.url))
+                return null;
+
+            string org = GetOrganization(vm.url);
+            if (!string.IsNullOrEmpty(org))
+                vm.organization = org;
+            else
+                return null;
+
+            vm.teamProject = this.GetPayloadValue<string>(body, "resource.revision.fields.['System.AreaPath']", token => token.ToString());
+            if (string.IsNullOrEmpty(vm.teamProject))
+                return null;
+
+            vm.state = this.GetPayloadValue<string>(body, "resource.fields.['System.State'].newValue", token => token.ToString());
+            if (string.IsNullOrEmpty(vm.state))
+                return null;
+                        
             logger.LogInformation(" Requested Payload eventType:" + vm.eventType);
             logger.LogInformation(" Requested Payload state:" + vm.state);
             logger.LogInformation(" Requested Payload workItemType:" + vm.workItemType);
             logger.LogInformation(" Requested Payload workItemId:" + vm.workItemId);
             logger.LogInformation(" Requested Payload orgnization:" + vm.organization);
+
+            String tempTeamProject = this.GetPayloadValue<string>(body, "resource.revision.fields.['System.TeamProject']", token => token.ToString()) ?? "NOT FOUND";
             logger.LogInformation(" Requested Payload teamProject:" + tempTeamProject);
+
+            String tempParentId = this.GetPayloadValue<string>(body, "resource.revision.fields.['System.Parent']", token => token.ToString()) ?? "NOT FOUND";
             logger.LogInformation(" Requested Payload parentId:" + tempParentId);
+
             return vm;
+        }
+
+        private bool PayloadHasValue(JToken payload, string tokenQuery)
+        {
+            return payload.SelectToken(tokenQuery) != null;
+        }
+
+        private T GetPayloadValue<T>(JObject payload, string tokenQuery, Func<JToken, T> converter)
+        {
+            JToken token = payload.SelectToken(tokenQuery);
+
+            if (token == null)
+            {
+                logger.LogError($" parameter {tokenQuery} not found");
+                return default(T);
+            }
+            else
+            {
+                try
+                {
+                    return converter.Invoke(token);
+                }
+                catch
+                {
+                    logger.LogError($" cast failed for parameter {tokenQuery}");
+                    return default(T);
+                }
+            }
         }
 
         private string GetOrganization(string url)
         {
-            url = url.Replace("http://", string.Empty);
-            url = url.Replace("https://", string.Empty);
-
-            if (url.Contains(value: "visualstudio.com"))
+            if (string.IsNullOrWhiteSpace(url))
+                return string.Empty;
+            else
             {
-                string[] split = url.Split('.');
-                return split[0].ToString();
-            }
+                url = url.Replace("http://", string.Empty);
+                url = url.Replace("https://", string.Empty);
 
-            if (url.Contains("dev.azure.com"))
-            {
-                url = url.Replace("dev.azure.com/", string.Empty);
-                string[] split = url.Split('/');
-                return split[0].ToString();
+                if (url.Contains(value: "visualstudio.com"))
+                {
+                    string[] split = url.Split('.');
+                    return split[0].ToString();
+                }
+                else if (url.Contains("dev.azure.com"))
+                {
+                    url = url.Replace("dev.azure.com/", string.Empty);
+                    string[] split = url.Split('/');
+                    return split[0].ToString();
+                }
+                else
+                    return string.Empty;
             }
-
-            return string.Empty;
         }
     }
 }
