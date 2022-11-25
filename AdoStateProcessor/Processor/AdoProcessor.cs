@@ -11,6 +11,7 @@ using AdoStateProcessor.Misc;
 using AdoStateProcessor.ViewModels;
 using Newtonsoft.Json.Linq;
 using AdoStateProcessor.Models;
+using Microsoft.TeamFoundation.Common;
 
 namespace AdoStateProcessor.Processor
 {
@@ -31,95 +32,77 @@ namespace AdoStateProcessor.Processor
         }
         public async Task ProcessUpdate(JObject payload, string pat, string functionAppCurrDirectory, string processType)
         {
-            PayloadViewModel vm = BuildPayloadViewModel(payload);
-
-            if (vm == null)
-                return;
-
-            logger.LogTrace(" Masked PAT:" + Mask(pat));
-            vm.pat = pat;
-            //if the event type is something other the updated, then lets just return an ok
-            if (vm.eventType != "workitem.updated") return;
-
-            // create our azure devops connection
-            Uri baseUri = new Uri(ADO_BASE_URL + vm.organization);
-
-            VssCredentials clientCredentials = new VssCredentials(new VssBasicCredential("username", vm.pat));
-            VssConnection vssConnection = new VssConnection(baseUri, clientCredentials);
-
-            // load the work item posted 
-            WorkItem workItem = await _workItemRepo.GetWorkItem(vssConnection, vm.workItemId);
-
-            // this should never happen, but if we can't load the work item from the id, then exit with error
-            if (workItem == null)
+            try
             {
-                logger.LogError(" work item not found");
-                return;
-            }
+                PayloadViewModel vm = null;
 
-            if (workItem.Relations == null)
-            {
-                logger.LogError(" work item has no parents");
-                return;
-            }
+                string eventType = this.GetPayloadValue<string>(payload, "eventType", token => token.ToString());
+                if (string.IsNullOrEmpty(eventType))
+                    return;
+                else if (eventType == "workitem.updated")
+                    vm = BuildExistingItemPayloadVM(payload);
+                else if (eventType == "workitem.created")
+                    vm = BuildNewItemPayloadVM(payload);
 
-            // get the related parent
-            WorkItemRelation parentRelation = workItem.Relations.Where<WorkItemRelation>(relationLink => 
-                                                                                            !string.IsNullOrEmpty(relationLink.Rel) 
-                                                                                            && relationLink.Rel.Equals("System.LinkTypes.Hierarchy-Reverse"))
-                                                                .FirstOrDefault();
+                if (vm == null)
+                    return;
 
-            // if we don't have any parents to worry about, then just abort
-            if (parentRelation == null)
-            {
-                logger.LogError(" no parent defined");
-                return;
-            }
+                logger.LogTrace(" Masked PAT:" + Mask(pat));
+                vm.pat = pat;
 
-            Int32 parentId = _helper.GetWorkItemIdFromUrl(parentRelation.Url);
-            WorkItem parentWorkItem = await _workItemRepo.GetWorkItem(vssConnection, parentId);
+                // create our azure devops connection
+                Uri baseUri = new Uri(ADO_BASE_URL + vm.organization);
 
-            if (parentWorkItem == null)
-            {
-                logger.LogError(" no parent found");
-                return;
-            };
+                VssCredentials clientCredentials = new VssCredentials(new VssBasicCredential("username", vm.pat));
+                VssConnection vssConnection = new VssConnection(baseUri, clientCredentials);
 
-            string parentState = parentWorkItem.Fields["System.State"] == null ? string.Empty : parentWorkItem.Fields["System.State"].ToString();
+                WorkItem parentWorkItem = await _workItemRepo.GetWorkItem(vssConnection, vm.parentId);
 
-            // load rules for updated work item
-            RulesModel rulesModel = await _rulesRepo.ListRules(vm.workItemType, functionAppCurrDirectory, processType);
-            //loop through each rule
-            foreach (var rule in rulesModel.Rules)
-            {
-                logger.LogInformation(" Executing against rule:" + rule.IfChildState);
-                if (rule.IfChildState.Equals(vm.state))
+                if (parentWorkItem == null)
                 {
-                    if (!rule.AllChildren)
+                    logger.LogError(" no parent found");
+                    return;
+                };
+
+                string parentState = parentWorkItem.Fields["System.State"] == null ? string.Empty : parentWorkItem.Fields["System.State"].ToString();
+
+                // load rules for updated work item
+                RulesModel rulesModel = await _rulesRepo.ListRules(vm.workItemType, functionAppCurrDirectory, processType);
+                //loop through each rule
+                foreach (var rule in rulesModel.Rules)
+                {
+                    logger.LogInformation(" Executing against rule:" + rule.IfChildState);
+                    if (rule.IfChildState.Equals(vm.state))
                     {
-                        logger.LogInformation(" In !rule.AllChildren:" + vm.state);
-                        if (!rule.NotParentStates.Contains(parentState))
+                        if (!rule.AllChildren)
                         {
-                            await _workItemRepo.UpdateWorkItemState(vssConnection, parentWorkItem, rule.SetParentStateTo);
+                            logger.LogInformation(" In !rule.AllChildren:" + vm.state);
+                            if (!rule.NotParentStates.Contains(parentState))
+                            {
+                                await _workItemRepo.UpdateWorkItemState(vssConnection, parentWorkItem, rule.SetParentStateTo);
+                            }
                         }
-                    }
-                    else
-                    {
-                        // get a list of all the child items to see if they are all closed or not
-                        List<WorkItem> childWorkItems = await _workItemRepo.ListChildWorkItemsForParent(vssConnection, parentWorkItem);
+                        else
+                        {
+                            // get a list of all the child items to see if they are all closed or not
+                            List<WorkItem> childWorkItems = await _workItemRepo.ListChildWorkItemsForParent(vssConnection, parentWorkItem);
 
-                        // check to see if any of the child items are not closed, if so, we will get a count > 0
-                        int count = childWorkItems.Where(x => !x.Fields["System.State"].ToString().Equals(rule.IfChildState)).ToList().Count;
+                            // check to see if any of the child items are not closed, if so, we will get a count > 0
+                            int count = childWorkItems.Where(x => !x.Fields["System.State"].ToString().Equals(rule.IfChildState)).ToList().Count;
 
-                        if (count.Equals(0))
-                            await _workItemRepo.UpdateWorkItemState(vssConnection, parentWorkItem, rule.SetParentStateTo);
+                            if (count.Equals(0))
+                                await _workItemRepo.UpdateWorkItemState(vssConnection, parentWorkItem, rule.SetParentStateTo);
+                        }
+
                     }
 
                 }
-
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(" " + ex.ToString());
             }
         }
-
 
         private string Mask(string s)
         {
@@ -132,7 +115,7 @@ namespace AdoStateProcessor.Processor
 
             return string.Format("{0}{1}{2}", s[0], "".PadLeft(s.Length - 2, maskChar), s[s.Length - 1]);
         }
-        private PayloadViewModel BuildPayloadViewModel(JObject body)
+        private PayloadViewModel BuildExistingItemPayloadVM(JObject body)
         {
             PayloadViewModel vm = new PayloadViewModel();
 
@@ -170,7 +153,11 @@ namespace AdoStateProcessor.Processor
             vm.state = this.GetPayloadValue<string>(body, "resource.fields.['System.State'].newValue", token => token.ToString());
             if (string.IsNullOrEmpty(vm.state))
                 return null;
-                        
+
+            vm.parentId = this.GetPayloadValue<int>(body, "resource.revision.fields.['System.Parent']", token => Convert.ToInt32(token.ToString()));
+            if (vm.parentId == 0)
+                return null;
+
             logger.LogInformation(" Requested Payload eventType:" + vm.eventType);
             logger.LogInformation(" Requested Payload state:" + vm.state);
             logger.LogInformation(" Requested Payload workItemType:" + vm.workItemType);
@@ -178,10 +165,59 @@ namespace AdoStateProcessor.Processor
             logger.LogInformation(" Requested Payload orgnization:" + vm.organization);
 
             String tempTeamProject = this.GetPayloadValue<string>(body, "resource.revision.fields.['System.TeamProject']", token => token.ToString()) ?? "NOT FOUND";
-            logger.LogInformation(" Requested Payload teamProject:" + tempTeamProject);
+            logger.LogInformation(" Requested Payload teamProject:" + tempTeamProject);            
+            logger.LogInformation(" Requested Payload parentId:" + vm.parentId);
 
-            String tempParentId = this.GetPayloadValue<string>(body, "resource.revision.fields.['System.Parent']", token => token.ToString()) ?? "NOT FOUND";
-            logger.LogInformation(" Requested Payload parentId:" + tempParentId);
+            return vm;
+        }
+
+        private PayloadViewModel BuildNewItemPayloadVM(JObject body)
+        {
+            PayloadViewModel vm = new PayloadViewModel();
+
+            vm.workItemType = this.GetPayloadValue<string>(body, "resource.fields.['System.WorkItemType']", token => token.ToString());
+            if (string.IsNullOrEmpty(vm.workItemType))
+                return null;
+
+            vm.eventType = this.GetPayloadValue<string>(body, "eventType", token => token.ToString());
+            if (string.IsNullOrEmpty(vm.eventType))
+                return null;
+
+            if (!this.PayloadHasValue(body, "resource.rev"))
+                return null;
+            else
+                vm.rev = this.GetPayloadValue<int>(body, "resource.rev", token => Convert.ToInt32(token.ToString()));
+
+            vm.url = this.GetPayloadValue<string>(body, "resource.url", token => token.ToString());
+            if (string.IsNullOrEmpty(vm.url))
+                return null;
+
+            string org = GetOrganization(vm.url);
+            if (!string.IsNullOrEmpty(org))
+                vm.organization = org;
+            else
+                return null;
+
+            vm.teamProject = this.GetPayloadValue<string>(body, "resource.fields.['System.AreaPath']", token => token.ToString());
+            if (string.IsNullOrEmpty(vm.teamProject))
+                return null;
+
+            vm.state = this.GetPayloadValue<string>(body, "resource.fields.['System.State']", token => token.ToString());
+            if (string.IsNullOrEmpty(vm.state) || vm.state != "New")
+                return null;
+
+            vm.parentId = this.GetPayloadValue<int>(body, "resource.fields.['System.Parent']", token => Convert.ToInt32(token.ToString()));
+            if (vm.parentId == 0)
+                return null;
+
+            logger.LogInformation(" Requested Payload eventType:" + vm.eventType);
+            logger.LogInformation(" Requested Payload state:" + vm.state);
+            logger.LogInformation(" Requested Payload workItemType:" + vm.workItemType);
+            logger.LogInformation(" Requested Payload orgnization:" + vm.organization);
+
+            String tempTeamProject = this.GetPayloadValue<string>(body, "resource.fields.['System.TeamProject']", token => token.ToString()) ?? "NOT FOUND";
+            logger.LogInformation(" Requested Payload teamProject:" + tempTeamProject);
+            logger.LogInformation(" Requested Payload parentId:" + vm.parentId);
 
             return vm;
         }
