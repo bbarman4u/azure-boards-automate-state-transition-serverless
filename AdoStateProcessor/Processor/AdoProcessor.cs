@@ -33,6 +33,9 @@ namespace AdoStateProcessor.Processor
         {
             PayloadViewModel vm = BuildPayloadViewModel(payload);
 
+            if (vm == null)
+                return;
+
             logger.LogTrace(" Masked PAT:" + Mask(pat));
             vm.pat = pat;
             //if the event type is something other the updated, then lets just return an ok
