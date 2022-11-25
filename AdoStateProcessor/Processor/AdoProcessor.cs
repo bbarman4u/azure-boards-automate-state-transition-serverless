@@ -151,7 +151,7 @@ namespace AdoStateProcessor.Processor
             if (!this.PayloadHasValue(body, "resource.rev"))
                 return null;
             else
-                vm.rev = this.GetPayloadValue<int>(body, "resource.rev", token => Convert.ToInt32(body["resource"]["rev"].ToString()));
+                vm.rev = this.GetPayloadValue<int>(body, "resource.rev", token => Convert.ToInt32(token.ToString()));
 
             vm.url = this.GetPayloadValue<string>(body, "resource.url", token => token.ToString());
             if (string.IsNullOrEmpty(vm.url))
